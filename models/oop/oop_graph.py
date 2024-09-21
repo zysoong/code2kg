@@ -2,9 +2,7 @@ from pydantic import BaseModel, Field
 import networkx as nx
 
 import utils.object_mapping
-from oop_class import OOPClass
-from oop_module import OOPModule
-from oop_function import OOPFunction
+from models.oop import OOPModule, OOPClass, OOPFunction
 
 
 class OOPGraph(BaseModel):
@@ -18,6 +16,7 @@ class OOPGraph(BaseModel):
         self.graph.add_node(oop_class.qualified_name, code=oop_class.code)
 
         class_mapping = {
+            "type": "type",
             "code": "code"
         }
 
@@ -36,6 +35,7 @@ class OOPGraph(BaseModel):
         self.graph.add_node(oop_function.qualified_name, code=oop_function.code)
 
         function_mapping = {
+            "type": "type",
             "code": "code"
         }
 

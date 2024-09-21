@@ -1,10 +1,12 @@
 from typing import List
 from pydantic import BaseModel, Field
-from model.oop.oop_module import OOPModule
+
+from models.oop import OOPModule
 
 
 class OOPClass(BaseModel):
     qualified_name: str = Field(..., pattern=r"^[\w.]+(?:\.[\w]+)?$")
+    type: str = Field(default="oop_class")
     code: str = Field(default=None)
     super_classes: List["OOPClass"] = Field(...)
     within: "OOPClass" | OOPModule = Field(...)

@@ -2,12 +2,12 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from model.oop.oop_class import OOPClass
-from model.oop.oop_module import OOPModule
+from models.oop import OOPClass, OOPModule
 
 
 class OOPFunction(BaseModel):
     qualified_name: str = Field(..., pattern=r"^[\w.]+(?:\.[\w]+)?$")
+    type: str = Field(default="oop_function")
     code: str = Field(default=None)
     flat_function_calls: List["OOPFunction"] = Field(default=[])
     within: "OOPFunction" | OOPClass | OOPModule = Field(...)
