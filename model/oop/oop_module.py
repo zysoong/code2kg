@@ -3,6 +3,5 @@ from typing import List
 from pydantic import BaseModel, Field
 
 
-class OOPFile(BaseModel):
+class OOPModule(BaseModel):
     qualified_name: str = Field(..., pattern=r"^[\w.]+(?:\.[\w]+)?$")
-    summary: str = Field(default=None)

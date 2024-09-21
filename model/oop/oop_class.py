@@ -1,20 +1,25 @@
-from typing import List, Any
+from typing import List, Any, Optional
 
 from pydantic import BaseModel, Field, model_validator
+
+from model.oop.oop_module import OOPModule
 
 
 class OOPClass(BaseModel):
     qualified_name: str = Field(..., pattern=r"^[\w.]+(?:\.[\w]+)?$")
-    summary: str = Field(default=None)
     code: str = Field(default=None)
-    extends: List = Field(...)
+    super_classes: List["OOPClass"] = Field(...)
+    within: "OOPClass" | OOPModule = Field(...)
 
     def __init__(
             self,
             qualified_name: str,
-            summary: str | None, code: str | None,
-            extends: List
+            code: str | None,
+            super_classes: List,
+            within: "OOPClass" | OOPModule
     ):
-        if self in extends:
+        if self in super_classes:
             raise ValueError("Recursive class inherit detected.")
-        super().__init__(qualified_name=qualified_name, summary=summary, code=code, extends=extends)
+        if self == self.within:
+            raise ValueError("Recursive class aggregation detected.")
+        super().__init__(qualified_name=qualified_name, code=code, super_classes=super_classes, within=within)
