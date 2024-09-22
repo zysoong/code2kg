@@ -6,7 +6,8 @@ from models.oop import OOPModule
 
 class OOPClass(BaseModel):
     qualified_name: str = Field(..., pattern=r"^[\w.]+(?:\.[\w]+)?$")
-    type: str = Field(default="oop_class")
+    name: str = Field(...)
+    node_type: str = Field(default="oop_class")
     code: str = Field(default=None)
     super_classes: List["OOPClass"] = Field(...)
     within: "OOPClass" | OOPModule = Field(...)
@@ -14,6 +15,7 @@ class OOPClass(BaseModel):
     def __init__(
             self,
             qualified_name: str,
+            class_name: str,
             code: str | None,
             super_classes: List,
             within: "OOPClass" | OOPModule
@@ -22,4 +24,5 @@ class OOPClass(BaseModel):
             raise ValueError("Recursive class inherit detected.")
         if self == self.within:
             raise ValueError("Recursive class aggregation detected.")
-        super().__init__(qualified_name=qualified_name, code=code, super_classes=super_classes, within=within)
+        super().__init__(qualified_name=qualified_name, class_name=class_name,
+                         code=code, super_classes=super_classes, within=within)
