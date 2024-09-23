@@ -1,6 +1,7 @@
 import networkx
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
+import utils.graph_query
 from models.oop import OOPFunction
 
 function_summary_system_prompt: str = """
@@ -21,21 +22,9 @@ def get_prompt_template_for_function_extraction(graph: networkx.DiGraph, nx_func
     code: str = nx_func_node["code"]
     summaries_of_calls: str = "Following functions are used: \n"
 
-    incoming_within_edges = [(u, v) for u, v, data
-                             in graph.in_edges(nx_func_node, data=True) if data.get('edge_type') == 'within']
-    outgoing_call_edges = [(u, v) for u, v, data
-                           in graph.out_edges(nx_func_node, data=True) if data.get('edge_type') == 'calls']
-
-    for u, _ in incoming_within_edges:
-        if graph.nodes[u].get("node_type") == "oop_function":
-            func_signature: str = graph.nodes[u]["signature"]
-            func_summary: str = graph.nodes[u]["summary"]
-            summaries_of_calls += f"{func_signature}: {func_summary} \n"
-    for _, v in outgoing_call_edges:
-        if graph.nodes[v].get("node_type") == "oop_function":
-            func_signature: str = graph.nodes[v]["signature"]
-            func_summary: str = graph.nodes[v]["summary"]
-            summaries_of_calls += f"{func_signature}: {func_summary} \n"
+    rel_nodes: list = utils.graph_query.get_relative_nodes(graph, nx_func_node)
+    for rel_node in rel_nodes:
+        summaries_of_calls += f'{rel_node["signature"]}: {rel_node["summary"]} \n'
 
     user_prompt: str = f"Please generate summary of given function {signature}: \n{code}\n{summaries_of_calls}"
 
