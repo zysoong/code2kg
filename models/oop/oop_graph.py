@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 import networkx as nx
 
 import utils.object_mapping
-from models.base import BaseGraphModel
+from base.models import BaseGraphModel
 from models.oop import OOPModule, OOPClass, OOPFunction
 
 
