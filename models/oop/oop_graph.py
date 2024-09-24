@@ -2,12 +2,11 @@ from pydantic import BaseModel, Field
 import networkx as nx
 
 import utils.object_mapping
+from models.base import BaseGraphModel
 from models.oop import OOPModule, OOPClass, OOPFunction
 
 
-class OOPGraph(BaseModel):
-    graph: nx.DiGraph = Field(default_factory=nx.DiGraph)
-    _type_to_nodes: dict = Field(default_factory=dict)
+class OOPGraph(BaseGraphModel):
 
     def add_module(self, oop_module: OOPModule):
         self.graph.add_node(oop_module.qualified_name)

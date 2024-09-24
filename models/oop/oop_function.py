@@ -2,16 +2,26 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
+from base.models import BaseGraphNodeModel
 from models.oop import OOPClass, OOPModule
 
 
-class OOPFunction(BaseModel):
+class OOPFunction(BaseGraphNodeModel):
+
     qualified_name: str = Field(..., pattern=r"^[\w.]+(?:\.[\w]+)?$")
     signature: str = Field(...)
-    node_type: str = Field(default="oop_function")
     code: str = Field(default=None)
     flat_function_calls: List["OOPFunction"] = Field(default=[])
     within: "OOPFunction" | OOPClass | OOPModule = Field(...)
+
+    def node_id(self) -> str:
+        return "qualified_name"
+
+    def node_attr(self) -> list[str]:
+        return ["signature", "code"]
+
+    def outgoing_relations(self) -> list[str]:
+        return ["flat_function_calls", "within"]
 
     def __init__(
             self,

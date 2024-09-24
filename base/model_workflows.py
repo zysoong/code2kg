@@ -1,0 +1,2 @@
+class PostProce(BaseModel):
+    pass

@@ -1,7 +1,18 @@
 from pydantic import BaseModel, Field
 
+from base.models import BaseGraphNodeModel
 
-class OOPModule(BaseModel):
+
+class OOPModule(BaseGraphNodeModel):
+
     qualified_name: str = Field(..., pattern=r"^[\w.]+(?:\.[\w]+)?$")
     module_name: str = Field(...)
-    node_type: str = Field(default="oop_module")
+
+    def node_id(self) -> str:
+        return "qualified_name"
+
+    def node_attr(self) -> list[str]:
+        return ["module_name"]
+
+    def outgoing_relations(self) -> list[str]:
+        return []

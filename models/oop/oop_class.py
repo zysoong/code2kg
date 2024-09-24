@@ -1,16 +1,25 @@
 from typing import List
 from pydantic import BaseModel, Field
 
+from base.models import BaseGraphNodeModel
 from models.oop import OOPModule
 
 
-class OOPClass(BaseModel):
+class OOPClass(BaseGraphNodeModel):
     qualified_name: str = Field(..., pattern=r"^[\w.]+(?:\.[\w]+)?$")
     name: str = Field(...)
-    node_type: str = Field(default="oop_class")
     code: str = Field(default=None)
     super_classes: List["OOPClass"] = Field(...)
     within: "OOPClass" | OOPModule = Field(...)
+
+    def node_id(self) -> str:
+        return "qualified_name"
+
+    def node_attr(self) -> list[str]:
+        return ["name", "code"]
+
+    def outgoing_relations(self) -> list[str]:
+        return ["super_classes", "within"]
 
     def __init__(
             self,
