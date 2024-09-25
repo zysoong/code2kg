@@ -50,14 +50,20 @@ class BaseGraphNodeModel(BaseModel, ABC):
 
 
 class BaseGraphModel(BaseModel, ABC):
-    graph: nx.DiGraph = Field(default_factory=nx.DiGraph)
+
+    nx_graph: nx.DiGraph = Field(default_factory=nx.DiGraph)
+    base_nodes: dict[str, BaseGraphNodeModel] = Field(default={})
 
     def add_node(self, node: BaseGraphNodeModel):
-
-        self.graph.add_node(node.id, **node.attributes)
-
+        self.nx_graph.add_node(node.id, **node.attributes)
+        self.base_nodes[node.id] = node
         for rel_key, rel in node.relations.items():
             for depends_on_node in _convert_to_list(rel):  # type: BaseGraphNodeModel
-                if depends_on_node.id not in self.graph:
-                    self.graph.add_node(depends_on_node.id, **depends_on_node.attributes)
-                self.graph.add_edge(node.id, depends_on_node.id, type=rel_key)
+                if depends_on_node.id not in self.nx_graph:
+                    self.nx_graph.add_node(depends_on_node.id, **depends_on_node.attributes)
+                self.nx_graph.add_edge(node.id, depends_on_node.id, type=rel_key)
+
+    def get_base_node_from_nx_node(self, nx_node):
+        node_id: str = self.nx_graph.nodes[nx_node].get("id")
+        base_node: BaseGraphNodeModel = self.base_nodes[node_id]
+        return base_node

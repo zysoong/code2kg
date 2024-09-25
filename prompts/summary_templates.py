@@ -1,8 +1,9 @@
 import networkx
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-import utils.graph_query
-from models.oop import OOPFunction
+import utils.oop_graph_query
+from base.models import BaseGraphModel, BaseGraphNodeModel
+from models.oop import OOPFunction, OOPClass
 
 function_summary_system_prompt: str = """
 -Target activity-
@@ -17,16 +18,18 @@ and extract the summary of the function with given source codes.
 """
 
 
-def get_prompt_template_for_function_extraction(graph: networkx.DiGraph, nx_func_node):
-    signature: str = nx_func_node["signature"]
-    code: str = nx_func_node["code"]
-    summaries_of_calls: str = "Following functions are used: \n"
+def get_prompt_template_for_summary(oop_graph: BaseGraphModel, oop_function: OOPFunction):
+    summaries_of_relative_nodes: str = "Following functions are used: \n"
 
-    rel_nodes: list = utils.graph_query.get_relative_nodes(graph, nx_func_node)
+    rel_nodes: list[BaseGraphNodeModel] = utils.oop_graph_query.get_relative_nodes(oop_graph, oop_function)
     for rel_node in rel_nodes:
-        summaries_of_calls += f'{rel_node["signature"]}: {rel_node["summary"]} \n'
+        if isinstance(rel_node, OOPFunction):
+            summaries_of_relative_nodes += f'{rel_node.signature}: {rel_node.summary} \n'
+        else:
+            raise ValueError(f"Relative nodes of OOPFunction must be OOPFunction. Found {rel_node.__class__.__name__}")
 
-    user_prompt: str = f"Please generate summary of given function {signature}: \n{code}\n{summaries_of_calls}"
+    user_prompt: str = (f"Please generate summary of given function "
+                        f"{oop_function.signature}: \n{oop_function.code}\n{summaries_of_relative_nodes}")
 
     return ChatPromptTemplate.from_messages([
         ("system", function_summary_system_prompt),

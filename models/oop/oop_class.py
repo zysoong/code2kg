@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from base.models import BaseGraphNodeModel
 from models.oop import OOPModule
@@ -9,6 +9,7 @@ class OOPClass(BaseGraphNodeModel):
     qualified_name: str = Field(..., pattern=r"^[\w.]+(?:\.[\w]+)?$")
     name: str = Field(...)
     code: str = Field(default=None)
+    summary: str = Field(default="")
     super_classes: List["OOPClass"] = Field(...)
     within: "OOPClass" | OOPModule = Field(...)
 
