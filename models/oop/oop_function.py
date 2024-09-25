@@ -10,10 +10,10 @@ class OOPFunction(BaseGraphNodeModel):
 
     qualified_name: str = Field(..., pattern=r"^[\w.]+(?:\.[\w]+)?$")
     signature: str = Field(...)
-    code: str = Field(default=None)
+    code: str = Field(...)
     summary: str = Field(default="")
     flat_function_calls: List["OOPFunction"] = Field(default=[])
-    within: "OOPFunction" | OOPClass | OOPModule = Field(...)
+    within: BaseGraphNodeModel = Field(...)
 
     def node_id(self) -> str:
         return "qualified_name"
@@ -28,11 +28,17 @@ class OOPFunction(BaseGraphNodeModel):
             self,
             qualified_name: str,
             signature: str,
-            code: str | None,
-            within: "OOPFunction" | OOPClass | OOPModule
+            code: str,
+            within: BaseGraphNodeModel
     ):
-        if self == self.within:
+        if self == within:
             raise ValueError("Recursive function aggregation detected.")
+        if not isinstance(within, OOPFunction) and \
+                not isinstance(within, OOPClass) and\
+                not isinstance(within, OOPModule):
+            raise ValueError(f"OOPFunction must within another OOPFunction, OOPClass or OOPModule. "
+                             f"Found {within.__class__}")
+
         super().__init__(
             qualified_name=qualified_name,
             signature=signature,

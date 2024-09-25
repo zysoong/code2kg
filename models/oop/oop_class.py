@@ -8,10 +8,10 @@ from models.oop import OOPModule
 class OOPClass(BaseGraphNodeModel):
     qualified_name: str = Field(..., pattern=r"^[\w.]+(?:\.[\w]+)?$")
     name: str = Field(...)
-    code: str = Field(default=None)
+    code: str = Field(...)
     summary: str = Field(default="")
     super_classes: List["OOPClass"] = Field(...)
-    within: "OOPClass" | OOPModule = Field(...)
+    within: BaseGraphNodeModel = Field(...)
 
     def node_id(self) -> str:
         return "qualified_name"
@@ -25,14 +25,17 @@ class OOPClass(BaseGraphNodeModel):
     def __init__(
             self,
             qualified_name: str,
-            class_name: str,
+            name: str,
             code: str | None,
             super_classes: List,
-            within: "OOPClass" | OOPModule
+            within: BaseGraphNodeModel
     ):
         if self in super_classes:
             raise ValueError("Recursive class inherit detected.")
-        if self == self.within:
+        if self == within:
             raise ValueError("Recursive class aggregation detected.")
-        super().__init__(qualified_name=qualified_name, class_name=class_name,
+        if not isinstance(within, OOPClass) and not isinstance(within, OOPModule):
+            raise ValueError(f"OOPClass must within another OOPClass or OOPModule. Found {within.__class__.__name__}")
+
+        super().__init__(qualified_name=qualified_name, name=name,
                          code=code, super_classes=super_classes, within=within)
