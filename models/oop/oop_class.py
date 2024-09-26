@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 from pydantic import Field
 
 from base.models import BaseGraphNodeModel
@@ -11,7 +11,7 @@ class OOPClass(BaseGraphNodeModel):
     code: str = Field(...)
     summary: str = Field(default="")
     super_classes: List["OOPClass"] = Field(...)
-    within: BaseGraphNodeModel = Field(...)
+    within: Union["OOPClass", OOPModule] = Field(...)
 
     def node_id(self) -> str:
         return "qualified_name"
@@ -32,10 +32,9 @@ class OOPClass(BaseGraphNodeModel):
     ):
         if self in super_classes:
             raise ValueError("Recursive class inherit detected.")
+
         if self == within:
             raise ValueError("Recursive class aggregation detected.")
-        if not isinstance(within, OOPClass) and not isinstance(within, OOPModule):
-            raise ValueError(f"OOPClass must within another OOPClass or OOPModule. Found {within.__class__.__name__}")
 
         super().__init__(qualified_name=qualified_name, name=name,
                          code=code, super_classes=super_classes, within=within)

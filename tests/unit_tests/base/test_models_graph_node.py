@@ -1,0 +1,71 @@
+import pytest
+from pydantic import Field, ConfigDict
+
+from base.models import BaseGraphNodeModel
+
+
+class DummyClass:
+    def __init__(self):
+        self.dummy_variable = ""
+
+
+class NodeWithoutId(BaseGraphNodeModel):
+    dummy_name: str = Field(...)
+
+    def node_id(self) -> str:
+        pass
+
+    def node_attr(self) -> list[str]:
+        return []
+
+    def outgoing_relations(self) -> list[str]:
+        return []
+
+
+class NodeWithoutAttrAndRelation(BaseGraphNodeModel):
+    dummy_name: str = Field(...)
+
+    def node_id(self) -> str:
+        return "dummy_name"
+
+    def node_attr(self) -> list[str]:
+        pass
+
+    def outgoing_relations(self) -> list[str]:
+        pass
+
+
+class NodeRelatedToDummyClass(BaseGraphNodeModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    dummy_name: str = Field(...)
+    related_to: DummyClass = Field(...)
+
+    def node_id(self) -> str:
+        return "dummy_name"
+
+    def node_attr(self) -> list[str]:
+        return []
+
+    def outgoing_relations(self) -> list[str]:
+        return ["related_to"]
+
+
+def test_base_graph_node_without_id():
+    with pytest.raises(ValueError, match="id of BaseGraphNodeModel NodeWithoutId not found."):
+        NodeWithoutId(dummy_name="dummy_name")
+
+
+def test_base_graph_node_without_attr_and_relations():
+    node = NodeWithoutAttrAndRelation(dummy_name="dummy_name")
+    assert node.attributes == {}
+    assert node.relations == {}
+
+
+def test_bash_graph_node_related_to_dummy_class():
+    dummy_obj: DummyClass = DummyClass()
+    with pytest.raises(ValueError, match="Relation of a BaseGraphNodeModel must be a BaseGraphNodeModel, "
+                                         "or a list of BaseGraphNodeModel. NodeRelatedToDummyClass however "
+                                         "has relation to a DummyClass which is not a BaseGraphNodeModel. "):
+        NodeRelatedToDummyClass(dummy_name="dummy_name", related_to=dummy_obj)
+
+

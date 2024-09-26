@@ -2,17 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import networkx as nx
-import pydantic
 from pydantic import BaseModel, Field, ConfigDict
-
-
-def _convert_to_list(value):
-    if isinstance(value, list):
-        return value
-    elif isinstance(value, tuple):
-        return list(value)
-    else:
-        return [value]
 
 
 def _convert_relations_to_list(value):
@@ -33,18 +23,23 @@ class BaseGraphNodeModel(BaseModel, ABC):
 
         super().__init__(**kwargs)
 
+        if self.node_id() is None:
+            raise ValueError(f"id of BaseGraphNodeModel {self.__class__.__name__} not found. Please implement"
+                             f" the node_id() function in {self.__class__.__name__} by returning the attribute name"
+                             f" as string, which will be recognized as id of the graph node. ")
         self.id = getattr(self, self.node_id())
-        self.attributes = {attr_key: getattr(self, attr_key) for attr_key in self.node_attr()}
-        self.relations = {rel_key: getattr(self, rel_key) for rel_key in self.outgoing_relations()}
+        node_attr: list = self.node_attr() if self.node_attr() is not None else []
+        outgoing_relations: list = self.outgoing_relations() if self.outgoing_relations() is not None else []
 
-        if self.id is None:
-            raise ValueError(f"Graph node id is None. ")
+        self.attributes = {attr_key: getattr(self, attr_key) for attr_key in node_attr}
+        self.relations = {rel_key: getattr(self, rel_key) for rel_key in outgoing_relations}
 
         for _, rel in self.relations.items():
             for depends_on in _convert_relations_to_list(rel):
                 if not isinstance(depends_on, BaseGraphNodeModel):
-                    raise ValueError(f"Graph node depends on a {depends_on.__class__.__name}. "
-                                     f"Expected {BaseGraphNodeModel.__name__}")
+                    raise ValueError(f"Relation of a BaseGraphNodeModel must be a BaseGraphNodeModel, or a"
+                                     f" list of BaseGraphNodeModel. {self.__class__.__name__} however has relation"
+                                     f" to a {depends_on.__class__.__name__} which is not a BaseGraphNodeModel. ")
 
     @abstractmethod
     def node_id(self) -> str:
