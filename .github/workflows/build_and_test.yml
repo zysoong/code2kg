@@ -25,8 +25,8 @@ jobs:
       - name: Install poetry
         shell: bash
         env:
-          POETRY_VERSION: ${{ inputs.poetry-version }}
-          PYTHON_VERSION: ${{ inputs.python-version }}
+          POETRY_VERSION: ${{ matrix.poetry-version }}
+          PYTHON_VERSION: ${{ matrix.python-version }}
         run: pipx install "poetry==$POETRY_VERSION" --python '${{ steps.setup-python.outputs.python-path }}' --verbose
 
       - name: Install dependencies for tests
