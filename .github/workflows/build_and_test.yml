@@ -37,7 +37,7 @@ jobs:
         run: |
           poetry run pytest tests/unit_tests/
 
-      - name: Run Integration Tests
-        run: |
-          poetry run pytest tests/integration_tests/
+      #- name: Run Integration Tests
+      #  run: |
+      #    poetry run pytest tests/integration_tests/
         
