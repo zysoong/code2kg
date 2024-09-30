@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:  
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.11]
+        poetry-version: [1.8.3]
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        name: Setup python ${{ matrix.python-version }}
+        id: setup-python
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install poetry
+        shell: bash
+        env:
+          POETRY_VERSION: ${{ inputs.poetry-version }}
+          PYTHON_VERSION: ${{ inputs.python-version }}
+        run: pipx install "poetry==$POETRY_VERSION" --python '${{ steps.setup-python.outputs.python-path }}' --verbose
+
+      - name: Install dependencies for tests
+        run: |
+          poetry install --with test
+      
+      - name: Run Unit Tests
+        run: |
+          poetry run pytest tests/unit_tests/
+
+      - name: Run Integration Tests
+        run: |
+          poetry run pytest tests/integration_tests/
+        
