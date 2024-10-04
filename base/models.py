@@ -5,15 +5,6 @@ import networkx as nx
 from pydantic import BaseModel, Field, ConfigDict
 
 
-def _convert_relations_to_list(value):
-    if isinstance(value, list):
-        return value
-    elif isinstance(value, tuple):
-        return list(value)
-    else:
-        return [value]
-
-
 class BaseGraphNodeModel(BaseModel, ABC):
     id: Any = Field(default=None)
     attributes: dict[str, Any] = Field(default_factory=dict)
@@ -59,16 +50,29 @@ class BaseGraphModel(BaseModel, ABC):
     nx_graph: nx.DiGraph = Field(default_factory=nx.DiGraph)
     base_nodes: dict[str, BaseGraphNodeModel] = Field(default={})
 
-    def add_node(self, node: BaseGraphNodeModel):
-        self.nx_graph.add_node(node.id, **node.attributes)
-        self.base_nodes[node.id] = node
-        for rel_key, rel in node.relations.items():
+    def add_node(self, base_graph_node: BaseGraphNodeModel):
+
+        # TODO Merge the node if node is already existed in the graph (Conflict check)
+        self.nx_graph.add_node(base_graph_node.id, **base_graph_node.attributes)
+        self.base_nodes[base_graph_node.id] = base_graph_node
+
+        for rel_key, rel in base_graph_node.relations.items():
             for depends_on_node in _convert_relations_to_list(rel):  # type: BaseGraphNodeModel
                 if depends_on_node.id not in self.nx_graph:
+                    # TODO Merge the node if node is already existed in the graph (Conflict check)
                     self.nx_graph.add_node(depends_on_node.id, **depends_on_node.attributes)
-                self.nx_graph.add_edge(node.id, depends_on_node.id, type=rel_key)
+                self.nx_graph.add_edge(base_graph_node.id, depends_on_node.id, type=rel_key)
 
     def get_base_node_from_nx_node(self, nx_node):
         node_id: str = self.nx_graph.nodes[nx_node].get("id")
         base_node: BaseGraphNodeModel = self.base_nodes[node_id]
         return base_node
+
+
+def _convert_relations_to_list(value):
+    if isinstance(value, list):
+        return value
+    elif isinstance(value, tuple):
+        return list(value)
+    else:
+        return [value]
