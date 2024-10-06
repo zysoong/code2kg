@@ -52,13 +52,14 @@ class NodeRelatedToDummyClass(BaseGraphNodeModel):
 
 class SimpleNode(BaseGraphNodeModel):
     name: str = Field(...)
+    simple_attr_with_default: str = Field(..., default_factory=str)
     related_to: list["SimpleNode"] = Field(..., default_factory=list)
 
     def node_id(self) -> str:
         return "name"
 
     def node_attr(self) -> list[str]:
-        return []
+        return ["simple_attr_with_default"]
 
     def outgoing_relations(self) -> list[str]:
         return ["related_to"]
@@ -89,6 +90,7 @@ def test_first_level_adding_to_graph_with_merging_and_branching_nodes():
 
     n1: SimpleNode = SimpleNode(
         name="n1",
+        simple_attr_with_default="attr_n1",
         related_to=[
             SimpleNode(name="n2"),
             SimpleNode(name="n3")
@@ -96,18 +98,20 @@ def test_first_level_adding_to_graph_with_merging_and_branching_nodes():
     )
     n2: SimpleNode = SimpleNode(
         name="n2",
+        simple_attr_with_default="attr_n2",
         related_to=[
             SimpleNode(name="n5"),
         ]
     )
-    n3: SimpleNode = SimpleNode(name="n3")
+    n3: SimpleNode = SimpleNode(name="n3", simple_attr_with_default="attr_n3")
     n4: SimpleNode = SimpleNode(
         name="n4",
+        simple_attr_with_default="attr_n4",
         related_to=[
             SimpleNode(name="n2"),
         ]
     )
-    n5: SimpleNode = SimpleNode(name="n5")
+    n5: SimpleNode = SimpleNode(name="n5", simple_attr_with_default="attr_n5")
 
     graph.add_node(n1)
     graph.add_node(n2)
