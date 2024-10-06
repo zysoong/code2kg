@@ -50,23 +50,74 @@ class BaseGraphModel(BaseModel, ABC):
     nx_graph: nx.DiGraph = Field(default_factory=nx.DiGraph)
     base_nodes: dict[str, BaseGraphNodeModel] = Field(default={})
 
-    def add_node(self, base_graph_node: BaseGraphNodeModel):
+    def add_node(self, node: BaseGraphNodeModel):
 
-        # TODO Merge the node if node is already existed in the graph (Conflict check)
-        self.nx_graph.add_node(base_graph_node.id, **base_graph_node.attributes)
-        self.base_nodes[base_graph_node.id] = base_graph_node
+        if node.id in self.base_nodes:
+            merged_node: BaseGraphNodeModel = self._merge_add_base_and_nx_node(node)
 
-        for rel_key, rel in base_graph_node.relations.items():
-            for depends_on_node in _convert_relations_to_list(rel):  # type: BaseGraphNodeModel
-                if depends_on_node.id not in self.nx_graph:
-                    # TODO Merge the node if node is already existed in the graph (Conflict check)
-                    self.nx_graph.add_node(depends_on_node.id, **depends_on_node.attributes)
-                self.nx_graph.add_edge(base_graph_node.id, depends_on_node.id, type=rel_key)
+            for rel_key, rel in merged_node.relations.items():
+                for depends_on_node in _convert_relations_to_list(rel):  # type: BaseGraphNodeModel
+                    if depends_on_node.id not in self.base_nodes:
+                        self.base_nodes[depends_on_node.id] = depends_on_node
+                        self.nx_graph.add_node(depends_on_node.id, **depends_on_node.attributes)
+                    else:
+                        self._merge_add_base_and_nx_node(depends_on_node)
+                    self.nx_graph.add_edge(node.id, depends_on_node.id, type=rel_key)
 
     def get_base_node_from_nx_node(self, nx_node):
         node_id: str = self.nx_graph.nodes[nx_node].get("id")
         base_node: BaseGraphNodeModel = self.base_nodes[node_id]
         return base_node
+
+    def _merge_add_base_and_nx_node(self, node: BaseGraphNodeModel) -> BaseGraphNodeModel:
+        merged_node: BaseGraphNodeModel = (
+            _merge_base_node(self.base_nodes[node.id], node))
+        self.nx_graph.add_node(merged_node.id, **merged_node.attributes)
+        self.base_nodes[merged_node.id] = merged_node
+        return merged_node
+
+
+def _merge_base_node(
+        node_1: BaseGraphNodeModel,
+        node_2: BaseGraphNodeModel
+) -> BaseGraphNodeModel:
+    if node_1.id is not node_2.id:
+        raise ValueError("Graph nodes to be merged must have same id. ")
+    merged_attrs = _merge_dicts(node_1.attributes, node_2.attributes)
+    merged_relations = _merge_dicts(node_1.relations, node_2.relations)
+    return BaseGraphNodeModel(
+        id=node_1.id,
+        attributes=merged_attrs,
+        relations=merged_relations
+    )
+
+
+def _merge_nx_graph_node(
+        node_1_id: Any,
+        node_1_attr: dict[str, Any],
+        node_2_id: Any,
+        node_2_attr: dict[str, Any]
+) -> (Any, dict[str, Any]):
+    if node_1_id is not node_2_id:
+        raise ValueError("Graph nodes to be merged must have same id. ")
+    merged_node_attrs = _merge_dicts(node_1_attr, node_2_attr)
+    return node_1_id, merged_node_attrs
+
+
+def _merge_dicts(
+        dict1: dict[str, Any],
+        dict2: dict[str, Any],
+) -> dict[str, Any]:
+    merged_dict: dict[str, Any] = dict1.copy()
+    for attr_key, attr_value in dict2.items():
+        if attr_key in merged_dict and attr_value is not merged_dict[attr_key]:
+            ValueError(f"Merge conflict on dict: Key {attr_key}. "
+                       f"Values are {attr_value}, {merged_dict[attr_key]}")
+        elif attr_key in merged_dict and attr_value is merged_dict[attr_key]:
+            pass
+        elif attr_key not in merged_dict:
+            merged_dict[attr_key] = attr_value
+    return merged_dict
 
 
 def _convert_relations_to_list(value):
