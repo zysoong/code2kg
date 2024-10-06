@@ -52,14 +52,14 @@ class BaseGraphModel(BaseModel, ABC):
 
     def add_node(self, node: BaseGraphNodeModel):
         merged_node: BaseGraphNodeModel = self._merge_add_base_and_nx_node(node)
-        for rel_key, rel in merged_node.relations.items():
-            for depends_on_node in _convert_relations_to_list(rel):  # type: BaseGraphNodeModel
+        for relation_key, relation_element_or_list in merged_node.relations.items():
+            for depends_on_node in _convert_relations_to_list(relation_element_or_list):  # type: BaseGraphNodeModel
                 if depends_on_node.id not in self.base_nodes:
                     self.base_nodes[depends_on_node.id] = depends_on_node
                     self.nx_graph.add_node(depends_on_node.id, **depends_on_node.attributes)
                 else:
                     self._merge_add_base_and_nx_node(depends_on_node)
-                self.nx_graph.add_edge(node.id, depends_on_node.id, type=rel_key)
+                self.nx_graph.add_edge(node.id, depends_on_node.id, type=relation_key)
 
     def get_base_node_from_nx_node(self, nx_node):
         node_id: str = self.nx_graph.nodes[nx_node].get("id")
