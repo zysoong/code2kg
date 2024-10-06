@@ -68,14 +68,14 @@ class BaseGraphModel(BaseModel, ABC):
 
     def _merge_add_base_and_nx_node(self, node: BaseGraphNodeModel) -> BaseGraphNodeModel:
         if node.id in self.base_nodes:
-            merged_node: BaseGraphNodeModel = (
-                _merge_base_node(self.base_nodes[node.id], node))
+            merged_node: BaseGraphNodeModel = _merge_base_node(self.base_nodes[node.id], node)
             self.nx_graph.add_node(merged_node.id, **merged_node.attributes)
             self.base_nodes[merged_node.id] = merged_node
             return merged_node
         else:
             self.nx_graph.add_node(node.id, **node.attributes)
             self.base_nodes[node.id] = node
+            return node
 
 
 def _merge_base_node(
@@ -86,11 +86,10 @@ def _merge_base_node(
         raise ValueError("Graph nodes to be merged must have same id. ")
     merged_attrs = _merge_dicts(node_1.attributes, node_2.attributes)
     merged_relations = _merge_dicts(node_1.relations, node_2.relations)
-    return BaseGraphNodeModel(
-        id=node_1.id,
-        attributes=merged_attrs,
-        relations=merged_relations
-    )
+    merged_node = node_1.model_copy(deep=True)
+    merged_node.attributes = merged_attrs
+    merged_node.relations = merged_relations
+    return merged_node
 
 
 def _merge_nx_graph_node(

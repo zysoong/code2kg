@@ -52,7 +52,7 @@ class NodeRelatedToDummyClass(BaseGraphNodeModel):
 
 class SimpleNode(BaseGraphNodeModel):
     name: str = Field(...)
-    related_to: list["SimpleNode"] = Field(...)
+    related_to: list["SimpleNode"] = Field(..., default_factory=list)
 
     def node_id(self) -> str:
         return "name"
@@ -90,29 +90,31 @@ def test_first_level_adding_to_graph_with_merging_and_branching_nodes():
     n1: SimpleNode = SimpleNode(
         name="n1",
         related_to=[
-            SimpleNode(name="n2", related_to=[]),
-            SimpleNode(name="n3", related_to=[])
+            SimpleNode(name="n2"),
+            SimpleNode(name="n3")
         ]
     )
     n2: SimpleNode = SimpleNode(
         name="n2",
         related_to=[
-            SimpleNode(name="n5", related_to=[]),
+            SimpleNode(name="n5"),
         ]
     )
-    n3: SimpleNode = SimpleNode(
-        name="n3",
-        related_to=[]
-    )
+    n3: SimpleNode = SimpleNode(name="n3")
     n4: SimpleNode = SimpleNode(
         name="n4",
         related_to=[
-            SimpleNode(name="n2", related_to=[]),
+            SimpleNode(name="n2"),
         ]
     )
-    n5: SimpleNode = SimpleNode(
-        name="n5",
-        related_to=[]
-    )
+    n5: SimpleNode = SimpleNode(name="n5")
+
+    graph.add_node(n1)
+    graph.add_node(n2)
+    graph.add_node(n3)
+    graph.add_node(n4)
+    graph.add_node(n5)
+
+
 
 
