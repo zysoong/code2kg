@@ -1,6 +1,7 @@
 import pytest
 from pydantic import Field, ConfigDict
 
+import base
 from base.models import BaseGraphNodeModel, BaseGraphModel
 
 
@@ -35,10 +36,10 @@ class NodeWithoutAttrAndRelation(BaseGraphNodeModel):
         pass
 
 
-class NodeRelatedToDummyClass(BaseGraphNodeModel):
+class NodeRelatedToListOfDummyClass(BaseGraphNodeModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     dummy_name: str = Field(...)
-    related_to: DummyClass = Field(...)
+    related_to: list[DummyClass] = Field(...)
 
     def node_id(self) -> str:
         return "dummy_name"
@@ -52,7 +53,7 @@ class NodeRelatedToDummyClass(BaseGraphNodeModel):
 
 class SimpleNode(BaseGraphNodeModel):
     name: str = Field(...)
-    simple_attr_with_default: str = Field(..., default_factory=str)
+    simple_attr_with_default: str | None = Field(default=None)
     related_to: list["SimpleNode"] = Field(..., default_factory=list)
 
     def node_id(self) -> str:
@@ -65,27 +66,93 @@ class SimpleNode(BaseGraphNodeModel):
         return ["related_to"]
 
 
-def test_base_graph_node_without_id():
+def test_NodeWithoutId():
     with pytest.raises(ValueError, match="id of BaseGraphNodeModel NodeWithoutId not found."):
         NodeWithoutId(dummy_name="dummy_name")
 
 
-def test_base_graph_node_without_attr_and_relations():
+def test_NodeWithoutAttrAndRelation():
     node = NodeWithoutAttrAndRelation(dummy_name="dummy_name")
     assert node.attributes == {}
     assert node.relations == {}
 
 
-def test_bash_graph_node_related_to_dummy_class():
+def test_NodeRelatedToListOfDummyClass_relate_to_dummy_class_obj():
     dummy_obj: DummyClass = DummyClass()
-    with pytest.raises(ValueError, match="Relation of a BaseGraphNodeModel must be a BaseGraphNodeModel, "
-                                         "or a list of BaseGraphNodeModel. NodeRelatedToDummyClass however "
-                                         "has relation to a DummyClass which is not a BaseGraphNodeModel. "):
-        NodeRelatedToDummyClass(dummy_name="dummy_name", related_to=dummy_obj)
+    with pytest.raises(ValueError, match="Input should be a valid list"):
+        NodeRelatedToListOfDummyClass(dummy_name="dummy_name", related_to=dummy_obj)
+
+
+def test_NodeRelatedToListOfDummyClass_relate_to_list_of_dummy_class_obj():
+    with pytest.raises(ValueError, match="Relation of a BaseGraphNodeModel must be a list of BaseGraphNodeModel. "
+                                         "NodeRelatedToListOfDummyClass however has relation to "
+                                         "a DummyClass which is not a BaseGraphNodeModel. "):
+        NodeRelatedToListOfDummyClass(dummy_name="dummy_name", related_to=[DummyClass()])
+
+
+#TODO Add test cases to change graph node properties
+
+def test_merge_node_attributes_no_conflict():
+    n1: SimpleNode = SimpleNode(
+        name="n1",
+        simple_attr_with_default="attr_n1",
+    )
+    n1_simplified: SimpleNode = SimpleNode(
+        name="n1"
+    )
+    n_merged = base.models._merge_base_node(n1, n1_simplified)
+    assert n_merged.attributes["simple_attr_with_default"] is "attr_n1"
+
+
+def test_merge_node_attributes_with_conflict():
+    n1_1: SimpleNode = SimpleNode(
+        name="n1",
+        simple_attr_with_default="attr_n1",
+    )
+    n1_2: SimpleNode = SimpleNode(
+        name="n1",
+        simple_attr_with_default="attr_n2"
+    )
+    with pytest.raises(ValueError, match="Merge conflict on dict: Key simple_attr_with_default. "):
+        base.models._merge_base_node(n1_1, n1_2)
+
+
+def test_merge_node_relations_no_conflict():
+    n2_no_relation: SimpleNode = SimpleNode(
+        name="n2",
+        simple_attr_with_default="attr_n2",
+    )
+    n2: SimpleNode = SimpleNode(
+        name="n2",
+        simple_attr_with_default="attr_n2",
+        related_to=[
+            SimpleNode(name="n5")
+        ]
+    )
+    n2_merged = base.models._merge_base_node(n2, n2_no_relation)
+    assert n2_merged.relations["related_to"][0].id is "n5"
+
+
+def test_merge_node_relations_with_conflict():
+    n2_no_relation: SimpleNode = SimpleNode(
+        name="n2",
+        simple_attr_with_default="attr_n2",
+        related_to=[
+            SimpleNode(name="n4")
+        ]
+    )
+    n2: SimpleNode = SimpleNode(
+        name="n2",
+        simple_attr_with_default="attr_n2",
+        related_to=[
+            SimpleNode(name="n5")
+        ]
+    )
+    with pytest.raises(ValueError, match="Merge conflict on dict: Key related_to."):
+        base.models._merge_base_node(n2, n2_no_relation)
 
 
 def test_first_level_adding_to_graph_with_merging_and_branching_nodes():
-
     graph: BaseGraphModel = BaseGraphModel()
 
     n1: SimpleNode = SimpleNode(
@@ -119,6 +186,5 @@ def test_first_level_adding_to_graph_with_merging_and_branching_nodes():
     graph.add_node(n4)
     graph.add_node(n5)
 
-
-
-
+    assert len(graph.base_nodes["n4"].relations) == 1
+    assert graph.base_nodes["n4"].relations["related_to"] is n2

@@ -2,13 +2,40 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import networkx as nx
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, validator, field_validator, root_validator, model_validator
 
 
 class BaseGraphNodeModel(BaseModel, ABC):
-    id: Any = Field(default=None)
-    attributes: dict[str, Any] = Field(default_factory=dict)
-    relations: dict[str, Any] = Field(default_factory=dict)
+    class Config:
+        validate_assignment = True
+
+    @property
+    def id(self) -> Any:
+        return getattr(self, self.node_id())
+
+    @property
+    def attributes(self) -> dict[str, Any]:
+        node_attr: list[str] = self.node_attr() if self.node_attr() is not None else []
+        return {attr_key: getattr(self, attr_key) for attr_key in node_attr}
+
+    @property
+    def relations(self) -> dict[str, list[Any]]:
+        outgoing_relations: list[str] = self.outgoing_relations() if self.outgoing_relations() is not None else []
+        relations_property = {rel_key: getattr(self, rel_key) for rel_key in outgoing_relations}
+        return relations_property
+
+    @model_validator(mode="after")
+    def validate_assignment_relation(self):
+        for _, rel in self.relations.items():
+            if not isinstance(rel, list):
+                raise ValueError(f"Relation of a BaseGraphNodeModel must be a "
+                                 f"list of BaseGraphNodeModel. Given relation is not a list. ")
+            else:
+                for depends_on in rel:
+                    if not isinstance(depends_on, BaseGraphNodeModel):
+                        raise ValueError(f"Relation of a BaseGraphNodeModel must be a "
+                                         f"list of BaseGraphNodeModel. {self.__class__.__name__} however has relation"
+                                         f" to a {depends_on.__class__.__name__} which is not a BaseGraphNodeModel. ")
 
     def __init__(self, **kwargs):
 
@@ -18,19 +45,17 @@ class BaseGraphNodeModel(BaseModel, ABC):
             raise ValueError(f"id of BaseGraphNodeModel {self.__class__.__name__} not found. Please implement"
                              f" the node_id() function in {self.__class__.__name__} by returning the attribute name"
                              f" as string, which will be recognized as id of the graph node. ")
-        self.id = getattr(self, self.node_id())
-        node_attr: list = self.node_attr() if self.node_attr() is not None else []
-        outgoing_relations: list = self.outgoing_relations() if self.outgoing_relations() is not None else []
-
-        self.attributes = {attr_key: getattr(self, attr_key) for attr_key in node_attr}
-        self.relations = {rel_key: getattr(self, rel_key) for rel_key in outgoing_relations}
 
         for _, rel in self.relations.items():
-            for depends_on in _convert_relations_to_list(rel):
-                if not isinstance(depends_on, BaseGraphNodeModel):
-                    raise ValueError(f"Relation of a BaseGraphNodeModel must be a BaseGraphNodeModel, or a"
-                                     f" list of BaseGraphNodeModel. {self.__class__.__name__} however has relation"
-                                     f" to a {depends_on.__class__.__name__} which is not a BaseGraphNodeModel. ")
+            if not isinstance(rel, list):
+                raise ValueError(f"Relation of a BaseGraphNodeModel must be a "
+                                 f"list of BaseGraphNodeModel. Given relation is not a list. ")
+            else:
+                for depends_on in rel:
+                    if not isinstance(depends_on, BaseGraphNodeModel):
+                        raise ValueError(f"Relation of a BaseGraphNodeModel must be a "
+                                         f"list of BaseGraphNodeModel. {self.__class__.__name__} however has relation"
+                                         f" to a {depends_on.__class__.__name__} which is not a BaseGraphNodeModel. ")
 
     @abstractmethod
     def node_id(self) -> str:
@@ -111,8 +136,8 @@ def _merge_dicts(
     merged_dict: dict[str, Any] = dict1.copy()
     for attr_key, attr_value in dict2.items():
         if attr_key in merged_dict and attr_value is not merged_dict[attr_key]:
-            ValueError(f"Merge conflict on dict: Key {attr_key}. "
-                       f"Values are {attr_value}, {merged_dict[attr_key]}")
+            raise ValueError(f"Merge conflict on dict: Key {attr_key}. "
+                             f"Values are {attr_value}, {merged_dict[attr_key]}")
         elif attr_key in merged_dict and attr_value is merged_dict[attr_key]:
             pass
         elif attr_key not in merged_dict:

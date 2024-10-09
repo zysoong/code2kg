@@ -11,7 +11,7 @@ class OOPClass(BaseGraphNodeModel):
     code: str = Field(...)
     summary: str = Field(default="")
     super_classes: List["OOPClass"] = Field(...)
-    within: Union["OOPClass", OOPModule] = Field(...)
+    within: List[Union["OOPClass", OOPModule]] = Field(...)
 
     def node_id(self) -> str:
         return "qualified_name"
@@ -22,6 +22,7 @@ class OOPClass(BaseGraphNodeModel):
     def outgoing_relations(self) -> list[str]:
         return ["super_classes", "within"]
 
+    # TODO construct with flexible parameters
     def __init__(
             self,
             qualified_name: str,

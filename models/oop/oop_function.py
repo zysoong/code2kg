@@ -12,8 +12,8 @@ class OOPFunction(BaseGraphNodeModel):
     signature: str = Field(...)
     code: str = Field(...)
     summary: str = Field(default="")
-    flat_function_calls: Union[List["OOPFunction"], "OOPFunction"] = Field(...)
-    within: Union["OOPFunction", OOPModule, OOPClass] = Field(...)
+    flat_function_calls: List["OOPFunction"] = Field(...)
+    within: List[Union["OOPFunction", OOPModule, OOPClass]] = Field(...)
 
     def node_id(self) -> str:
         return "qualified_name"
@@ -24,6 +24,7 @@ class OOPFunction(BaseGraphNodeModel):
     def outgoing_relations(self) -> list[str]:
         return ["flat_function_calls", "within"]
 
+    # TODO construct with flexible parameters
     def __init__(
             self,
             qualified_name: str,
