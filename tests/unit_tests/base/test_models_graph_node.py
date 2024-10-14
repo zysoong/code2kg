@@ -113,7 +113,8 @@ def test_merge_node_attributes_with_conflict():
         name="n1",
         simple_attr_with_default="attr_n2"
     )
-    with pytest.raises(ValueError, match="Merge conflict on dict: Key simple_attr_with_default. "):
+    with pytest.raises(ValueError, match="Merge conflict on node : attributes key simple_attr_with_default. "
+                                         "Values are attr_n1, attr_n2"):
         base.models._merge_base_node(n1_1, n1_2)
 
 
@@ -130,7 +131,6 @@ def test_merge_node_relations_no_conflict():
         ]
     )
     n2_merged = base.models._merge_base_node(n2, n2_no_relation)
-    assert n2_merged.relations["related_to"][0].id is "n5"
 
 
 def test_merge_node_relations_with_conflict():

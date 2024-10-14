@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import networkx as nx
-from pydantic import BaseModel, Field, ConfigDict, validator, field_validator, root_validator, model_validator
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 
 class BaseGraphNodeModel(BaseModel, ABC):
@@ -24,28 +24,12 @@ class BaseGraphNodeModel(BaseModel, ABC):
         relations_property = {rel_key: getattr(self, rel_key) for rel_key in outgoing_relations}
         return relations_property
 
-    @model_validator(mode="after")
-    def validate_assignment_relation(self):
-        for _, rel in self.relations.items():
-            if not isinstance(rel, list):
-                raise ValueError(f"Relation of a BaseGraphNodeModel must be a "
-                                 f"list of BaseGraphNodeModel. Given relation is not a list. ")
-            else:
-                for depends_on in rel:
-                    if not isinstance(depends_on, BaseGraphNodeModel):
-                        raise ValueError(f"Relation of a BaseGraphNodeModel must be a "
-                                         f"list of BaseGraphNodeModel. {self.__class__.__name__} however has relation"
-                                         f" to a {depends_on.__class__.__name__} which is not a BaseGraphNodeModel. ")
-
     def __init__(self, **kwargs):
-
         super().__init__(**kwargs)
-
         if self.node_id() is None:
             raise ValueError(f"id of BaseGraphNodeModel {self.__class__.__name__} not found. Please implement"
                              f" the node_id() function in {self.__class__.__name__} by returning the attribute name"
                              f" as string, which will be recognized as id of the graph node. ")
-
         for _, rel in self.relations.items():
             if not isinstance(rel, list):
                 raise ValueError(f"Relation of a BaseGraphNodeModel must be a "
@@ -76,14 +60,14 @@ class BaseGraphModel(BaseModel, ABC):
     base_nodes: dict[str, BaseGraphNodeModel] = Field(default={})
 
     def add_node(self, node: BaseGraphNodeModel):
-        merged_node: BaseGraphNodeModel = self._merge_add_base_and_nx_node(node)
+        merged_node: BaseGraphNodeModel = self._merge_base_and_nx_node(node)
         for relation_key, relation_element_or_list in merged_node.relations.items():
             for depends_on_node in _convert_relations_to_list(relation_element_or_list):  # type: BaseGraphNodeModel
                 if depends_on_node.id not in self.base_nodes:
                     self.base_nodes[depends_on_node.id] = depends_on_node
                     self.nx_graph.add_node(depends_on_node.id, **depends_on_node.attributes)
                 else:
-                    self._merge_add_base_and_nx_node(depends_on_node)
+                    self._merge_base_and_nx_node(depends_on_node)
                 self.nx_graph.add_edge(node.id, depends_on_node.id, type=relation_key)
 
     def get_base_node_from_nx_node(self, nx_node):
@@ -91,7 +75,7 @@ class BaseGraphModel(BaseModel, ABC):
         base_node: BaseGraphNodeModel = self.base_nodes[node_id]
         return base_node
 
-    def _merge_add_base_and_nx_node(self, node: BaseGraphNodeModel) -> BaseGraphNodeModel:
+    def _merge_base_and_nx_node(self, node: BaseGraphNodeModel) -> BaseGraphNodeModel:
         if node.id in self.base_nodes:
             merged_node: BaseGraphNodeModel = _merge_base_node(self.base_nodes[node.id], node)
             self.nx_graph.add_node(merged_node.id, **merged_node.attributes)
@@ -104,45 +88,64 @@ class BaseGraphModel(BaseModel, ABC):
 
 
 def _merge_base_node(
-        node_1: BaseGraphNodeModel,
-        node_2: BaseGraphNodeModel
+        node1: BaseGraphNodeModel,
+        node2: BaseGraphNodeModel
 ) -> BaseGraphNodeModel:
-    if node_1.id is not node_2.id:
+    if node1.id is not node2.id:
         raise ValueError("Graph nodes to be merged must have same id. ")
-    merged_attrs = _merge_dicts(node_1.attributes, node_2.attributes)
-    merged_relations = _merge_dicts(node_1.relations, node_2.relations)
-    merged_node = node_1.model_copy(deep=True)
-    merged_node.attributes = merged_attrs
-    merged_node.relations = merged_relations
-    return merged_node
+    node1_merged_attr: BaseGraphNodeModel = _merge_base_node_dict(node1, node2, "attributes")
+    node_merged: BaseGraphNodeModel = _merge_base_node_dict(node1_merged_attr, node2, "relations")
+    return node_merged
 
 
-def _merge_nx_graph_node(
-        node_1_id: Any,
-        node_1_attr: dict[str, Any],
-        node_2_id: Any,
-        node_2_attr: dict[str, Any]
-) -> (Any, dict[str, Any]):
-    if node_1_id is not node_2_id:
-        raise ValueError("Graph nodes to be merged must have same id. ")
-    merged_node_attrs = _merge_dicts(node_1_attr, node_2_attr)
-    return node_1_id, merged_node_attrs
+def _merge_base_node_dict(base_node: BaseGraphNodeModel, merging_node: BaseGraphNodeModel, node_property: str) \
+        -> BaseGraphNodeModel:
+    base_node_dict: dict[str, Any] = getattr(base_node, node_property)
+    merging_node_dict: dict[str, Any] = getattr(merging_node, node_property)
+
+    if base_node_dict.keys() != merging_node_dict.keys():
+        raise ValueError(f"BaseGraphNodeModel must have same {node_property} set on merging. "
+                         f"The {node_property} sets of given nodes are {base_node_dict.keys()} "
+                         f"and {merging_node_dict.keys()}. "
+                         f"Please check if the fields of BaseGraphNodeModel {base_node.__class__.__name__} and "
+                         f"{merging_node.__class__.__name__} are all initialized with 'default' or 'default_factory'. ")
+    else:
+        attrs_merged: dict[str, Any] = base_node_dict.copy()
+
+        for property_key in attrs_merged:
+            if base_node_dict[property_key] == merging_node_dict[property_key]:
+                attrs_merged[property_key] = base_node_dict[property_key]
+
+            elif (_is_node_attribute_initial(base_node, property_key) and
+                  not _is_node_attribute_initial(merging_node, property_key)):
+                attrs_merged[property_key] = merging_node_dict[property_key]
+
+            elif (not _is_node_attribute_initial(base_node, property_key) and
+                  _is_node_attribute_initial(merging_node, property_key)):
+                attrs_merged[property_key] = base_node_dict[property_key]
+
+            else:
+                raise ValueError(f"Merge conflict on node : {node_property} key {property_key}. "
+                                 f"Values are {base_node_dict[property_key]}, {merging_node_dict[property_key]}")
+
+        return base_node.model_copy(update=attrs_merged, deep=True)
 
 
-def _merge_dicts(
-        dict1: dict[str, Any],
-        dict2: dict[str, Any],
-) -> dict[str, Any]:
-    merged_dict: dict[str, Any] = dict1.copy()
-    for attr_key, attr_value in dict2.items():
-        if attr_key in merged_dict and attr_value is not merged_dict[attr_key]:
-            raise ValueError(f"Merge conflict on dict: Key {attr_key}. "
-                             f"Values are {attr_value}, {merged_dict[attr_key]}")
-        elif attr_key in merged_dict and attr_value is merged_dict[attr_key]:
-            pass
-        elif attr_key not in merged_dict:
-            merged_dict[attr_key] = attr_value
-    return merged_dict
+def _is_node_attribute_initial(
+        node: BaseGraphNodeModel,
+        attr_key: str
+) -> bool:
+    if node.model_fields[attr_key].default_factory is not None:
+        if getattr(node, attr_key) == node.model_fields[attr_key].default_factory() or \
+                getattr(node, attr_key) == node.model_fields[attr_key].default:
+            return True
+        else:
+            return False
+    else:
+        if getattr(node, attr_key) == node.model_fields[attr_key].default:
+            return True
+        else:
+            return False
 
 
 def _convert_relations_to_list(value):
