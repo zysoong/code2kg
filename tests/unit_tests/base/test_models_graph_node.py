@@ -131,6 +131,7 @@ def test_merge_node_relations_no_conflict():
         ]
     )
     n2_merged = base.models._merge_base_node(n2, n2_no_relation)
+    assert n2_merged.relations["related_to"] == [SimpleNode(name="n5")]
 
 
 def test_merge_node_relations_with_conflict():
@@ -148,7 +149,7 @@ def test_merge_node_relations_with_conflict():
             SimpleNode(name="n5")
         ]
     )
-    with pytest.raises(ValueError, match="Merge conflict on dict: Key related_to."):
+    with pytest.raises(ValueError, match="Merge conflict on node : relations key related_to. "):
         base.models._merge_base_node(n2, n2_no_relation)
 
 
@@ -187,4 +188,4 @@ def test_first_level_adding_to_graph_with_merging_and_branching_nodes():
     graph.add_node(n5)
 
     assert len(graph.base_nodes["n4"].relations) == 1
-    assert graph.base_nodes["n4"].relations["related_to"] is n2
+    assert graph.base_nodes["n4"].relations["related_to"] == n2
