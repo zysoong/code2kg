@@ -187,5 +187,24 @@ def test_first_level_adding_to_graph_with_merging_and_branching_nodes():
     graph.add_node(n4)
     graph.add_node(n5)
 
-    assert len(graph.base_nodes["n4"].relations) == 1
-    assert graph.base_nodes["n4"].relations["related_to"] == n2
+    assert graph.shallow_nodes["n1"].simple_attr_with_default == "attr_n1"
+    assert graph.shallow_nodes["n2"].simple_attr_with_default == "attr_n2"
+    assert graph.shallow_nodes["n3"].simple_attr_with_default == "attr_n3"
+    assert graph.shallow_nodes["n4"].simple_attr_with_default == "attr_n4"
+    assert graph.shallow_nodes["n5"].simple_attr_with_default == "attr_n5"
+
+    assert len(graph.shallow_nodes["n1"].relations["related_to"]) == 2
+    assert len(graph.shallow_nodes["n2"].relations["related_to"]) == 1
+    assert len(graph.shallow_nodes["n3"].relations["related_to"]) == 0
+    assert len(graph.shallow_nodes["n4"].relations["related_to"]) == 1
+    assert len(graph.shallow_nodes["n5"].relations["related_to"]) == 0
+
+    assert (graph.shallow_nodes["n1"].relations["related_to"] ==
+            [SimpleNode(name="n2"), SimpleNode(name="n3")]) or \
+           (graph.shallow_nodes["n1"].relations["related_to"] ==
+            [SimpleNode(name="n3"), SimpleNode(name="n2")])
+
+    assert graph.shallow_nodes["n2"].relations["related_to"] == [SimpleNode(name="n5")]
+    assert graph.shallow_nodes["n3"].relations["related_to"] == []
+    assert graph.shallow_nodes["n4"].relations["related_to"] == [SimpleNode(name="n2")]
+    assert graph.shallow_nodes["n5"].relations["related_to"] == []

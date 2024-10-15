@@ -57,33 +57,32 @@ class BaseGraphNodeModel(BaseModel, ABC):
 class BaseGraphModel(BaseModel, ABC):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     nx_graph: nx.DiGraph = Field(default_factory=nx.DiGraph)
-    base_nodes: dict[str, BaseGraphNodeModel] = Field(default={})
+    shallow_nodes: dict[str, BaseGraphNodeModel] = Field(default={})
 
     def add_node(self, node: BaseGraphNodeModel):
-        merged_node: BaseGraphNodeModel = self._merge_base_and_nx_node(node)
+        merged_node: BaseGraphNodeModel = self._add_and_merge_base_and_nx_node(node)
         for relation_key, relation_element_or_list in merged_node.relations.items():
             for depends_on_node in _convert_relations_to_list(relation_element_or_list):  # type: BaseGraphNodeModel
-                if depends_on_node.id not in self.base_nodes:
-                    self.base_nodes[depends_on_node.id] = depends_on_node
+                if depends_on_node.id not in self.shallow_nodes:
                     self.nx_graph.add_node(depends_on_node.id, **depends_on_node.attributes)
                 else:
-                    self._merge_base_and_nx_node(depends_on_node)
+                    self._add_and_merge_base_and_nx_node(depends_on_node)
                 self.nx_graph.add_edge(node.id, depends_on_node.id, type=relation_key)
 
     def get_base_node_from_nx_node(self, nx_node):
         node_id: str = self.nx_graph.nodes[nx_node].get("id")
-        base_node: BaseGraphNodeModel = self.base_nodes[node_id]
+        base_node: BaseGraphNodeModel = self.shallow_nodes[node_id]
         return base_node
 
-    def _merge_base_and_nx_node(self, node: BaseGraphNodeModel) -> BaseGraphNodeModel:
-        if node.id in self.base_nodes:
-            merged_node: BaseGraphNodeModel = _merge_base_node(self.base_nodes[node.id], node)
+    def _add_and_merge_base_and_nx_node(self, node: BaseGraphNodeModel) -> BaseGraphNodeModel:
+        if node.id in self.shallow_nodes:
+            merged_node: BaseGraphNodeModel = _merge_base_node(self.shallow_nodes[node.id], node)
             self.nx_graph.add_node(merged_node.id, **merged_node.attributes)
-            self.base_nodes[merged_node.id] = merged_node
+            self.shallow_nodes[merged_node.id] = merged_node
             return merged_node
         else:
             self.nx_graph.add_node(node.id, **node.attributes)
-            self.base_nodes[node.id] = node
+            self.shallow_nodes[node.id] = node
             return node
 
 
