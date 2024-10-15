@@ -8,7 +8,7 @@ def test_oop_class_constructor():
     name: str = "DummyClass"
     code: str = "class DummyClass:\n\tdef __init__(self):\n\t\tself.dummy = 'dummy'"
     super_classes: list[OOPClass] = []
-    within: OOPModule = OOPModule(qualified_name="dummy_module.dummy_package")
+    within: list[OOPModule] = [OOPModule(qualified_name="dummy_module.dummy_package")]
 
     oop_class = OOPClass(
         qualified_name=qualified_name,

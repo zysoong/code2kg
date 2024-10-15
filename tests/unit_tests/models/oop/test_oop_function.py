@@ -7,15 +7,15 @@ def test_oop_function_within_class_constructor():
     signature: str = "dummy_function(self, dummy_parameter)"
     code: str = "def dummy_function(self, dummy_parameter):\n\tdummy_var = dummy_parameter"
     flat_function_calls: list[OOPFunction] = []
-    within: OOPClass = OOPClass(
+    within: list = [OOPClass(
         qualified_name="dummy_module.dummy_package.DummyClass",
         name="DummyClass",
         code="class DummyClass:\n"
              "\tdef __init__(self):\n\t\tself.dummy = 'dummy'\n"
              "\tdef dummy_function(self, dummy_parameter):\n\t\tdummy_var = dummy_parameter",
         super_classes=[],
-        within=OOPModule(qualified_name="dummy_module.dummy_package")
-    )
+        within=[OOPModule(qualified_name="dummy_module.dummy_package")]
+    )]
 
     oop_function = OOPFunction(
         qualified_name=qualified_name,
@@ -54,11 +54,10 @@ def test_oop_function_with_flat_call_within_class_constructor():
         signature="another_dummy_function(dummy_parameter)",
         code="def another_dummy_function(self, dummy_parameter):\n\tprint(f'Hi, {dummy_parameter}')",
         flat_function_calls=[],
-        within=OOPModule(qualified_name="dummy_utils")
+        within=[OOPModule(qualified_name="dummy_utils")]
     )
-    flat_function_calls: OOPFunction = called_function
-
-    within: OOPClass = OOPClass(
+    flat_function_calls: list = [called_function]
+    within: list = [OOPClass(
         qualified_name="dummy_module.dummy_package.DummyClass",
         name="DummyClass",
         code="from dummy_utils import another_dummy_function"
@@ -66,8 +65,8 @@ def test_oop_function_with_flat_call_within_class_constructor():
              "\tdef __init__(self):\n\t\tself.dummy = 'dummy'\n"
              "\tdef dummy_function(self, dummy_parameter):\n\t\tdummy_var = another_dummy_function(dummy_parameter)",
         super_classes=[],
-        within=OOPModule(qualified_name="dummy_module.dummy_package")
-    )
+        within=[OOPModule(qualified_name="dummy_module.dummy_package")]
+    )]
 
     oop_function = OOPFunction(
         qualified_name=qualified_name,
@@ -107,19 +106,18 @@ def test_oop_function_with_multiple_flat_calls_within_class_constructor():
         signature="another_dummy_function(dummy_parameter)",
         code="def another_dummy_function(self, dummy_parameter):\n\tprint(f'Hi, {dummy_parameter}')",
         flat_function_calls=[],
-        within=OOPModule(qualified_name="dummy_utils")
+        within=[OOPModule(qualified_name="dummy_utils")]
     )
     called_function_2: OOPFunction = OOPFunction(
         qualified_name="dummy_utils.yet_another_dummy_function",
         signature="yet_another_dummy_function(dummy_parameter)",
         code="def yet_another_dummy_function(self, dummy_parameter):\n\tprint(f'Hi, {dummy_parameter}')",
         flat_function_calls=[],
-        within=OOPModule(qualified_name="dummy_utils")
+        within=[OOPModule(qualified_name="dummy_utils")]
     )
 
-    flat_function_calls: list[OOPFunction] = [called_function_1, called_function_2]
-
-    within: OOPClass = OOPClass(
+    flat_function_calls: list = [called_function_1, called_function_2]
+    within: list = [OOPClass(
         qualified_name="dummy_module.dummy_package.DummyClass",
         name="DummyClass",
         code="from dummy_utils import another_dummy_function, yet_another_dummy_function"
@@ -128,8 +126,8 @@ def test_oop_function_with_multiple_flat_calls_within_class_constructor():
              "\tdef dummy_function(self, dummy_parameter):\n\t\tdummy_var = another_dummy_function(dummy_parameter)"
              "\n\tdummy_var2=yet_another_dummy_function(dummy_parameter)",
         super_classes=[],
-        within=OOPModule(qualified_name="dummy_module.dummy_package")
-    )
+        within=[OOPModule(qualified_name="dummy_module.dummy_package")]
+    )]
 
     oop_function = OOPFunction(
         qualified_name=qualified_name,

@@ -12,8 +12,8 @@ class OOPFunction(BaseGraphNodeModel):
     signature: str = Field(...)
     code: str = Field(...)
     summary: str = Field(default="")
-    flat_function_calls: List["OOPFunction"] = Field(...)
-    within: List[Union["OOPFunction", OOPModule, OOPClass]] = Field(...)
+    flat_function_calls: List["OOPFunction"] = Field(..., default_factory=list)
+    within: List[Union["OOPFunction", OOPModule, OOPClass]] = Field(..., default_factory=list)
 
     def node_id(self) -> str:
         return "qualified_name"
@@ -30,8 +30,8 @@ class OOPFunction(BaseGraphNodeModel):
             qualified_name: str,
             signature: str,
             code: str,
-            flat_function_calls,
-            within: BaseGraphNodeModel
+            flat_function_calls: list,
+            within: list
     ):
         if self == within:
             raise ValueError("Recursive function aggregation detected.")

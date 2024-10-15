@@ -10,8 +10,8 @@ class OOPClass(BaseGraphNodeModel):
     name: str = Field(...)
     code: str = Field(...)
     summary: str = Field(default="")
-    super_classes: List["OOPClass"] = Field(...)
-    within: List[Union["OOPClass", OOPModule]] = Field(...)
+    super_classes: List["OOPClass"] = Field(..., default_factory=list)
+    within: List[Union["OOPClass", OOPModule]] = Field(..., default_factory=list)
 
     def node_id(self) -> str:
         return "qualified_name"
@@ -29,7 +29,7 @@ class OOPClass(BaseGraphNodeModel):
             name: str,
             code: str | None,
             super_classes: List,
-            within: BaseGraphNodeModel
+            within: List
     ):
         if self in super_classes:
             raise ValueError("Recursive class inherit detected.")
