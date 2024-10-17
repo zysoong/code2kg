@@ -151,7 +151,7 @@ def test_merge_node_relations_with_conflict():
         base.models._merge_base_node(n2, n2_no_relation)
 
 
-def test_first_level_adding_to_graph_with_merging_and_branching_nodes():
+def test_shallow_node_with_merging_and_branching_nodes():
     graph: BaseGraphModel = BaseGraphModel()
 
     n1: SimpleNode = SimpleNode(
@@ -206,3 +206,55 @@ def test_first_level_adding_to_graph_with_merging_and_branching_nodes():
     assert graph.shallow_nodes["n3"].relations["related_to"] == []
     assert graph.shallow_nodes["n4"].relations["related_to"] == [SimpleNode(name="n2")]
     assert graph.shallow_nodes["n5"].relations["related_to"] == []
+
+
+def test_nx_node_with_merging_and_branching_nodes():
+    graph: BaseGraphModel = BaseGraphModel()
+
+    n1: SimpleNode = SimpleNode(
+        name="n1",
+        simple_attr_with_default="attr_n1",
+        related_to=[
+            SimpleNode(name="n2"),
+            SimpleNode(name="n3")
+        ]
+    )
+    n2: SimpleNode = SimpleNode(
+        name="n2",
+        simple_attr_with_default="attr_n2",
+        related_to=[
+            SimpleNode(name="n5"),
+        ]
+    )
+    n3: SimpleNode = SimpleNode(name="n3", simple_attr_with_default="attr_n3")
+    n4: SimpleNode = SimpleNode(
+        name="n4",
+        simple_attr_with_default="attr_n4",
+        related_to=[
+            SimpleNode(name="n2"),
+        ]
+    )
+    n5: SimpleNode = SimpleNode(name="n5", simple_attr_with_default="attr_n5")
+
+    graph.add_node(n1)
+    graph.add_node(n2)
+    graph.add_node(n3)
+    graph.add_node(n4)
+    graph.add_node(n5)
+
+    assert graph.nx_graph.nodes["n1"].get("simple_attr_with_default") == "attr_n1"
+    assert graph.nx_graph.nodes["n2"].get("simple_attr_with_default") == "attr_n2"
+    assert graph.nx_graph.nodes["n3"].get("simple_attr_with_default") == "attr_n3"
+    assert graph.nx_graph.nodes["n4"].get("simple_attr_with_default") == "attr_n4"
+    assert graph.nx_graph.nodes["n5"].get("simple_attr_with_default") == "attr_n5"
+
+    assert graph.nx_graph.degree("n1") == 2
+    assert graph.nx_graph.degree("n2") == 3
+    assert graph.nx_graph.degree("n3") == 1
+    assert graph.nx_graph.degree("n4") == 1
+    assert graph.nx_graph.degree("n5") == 1
+
+    assert graph.nx_graph.has_edge("n1", "n2")
+    assert graph.nx_graph.has_edge("n1", "n3")
+    assert graph.nx_graph.has_edge("n2", "n5")
+    assert graph.nx_graph.has_edge("n4", "n2")
