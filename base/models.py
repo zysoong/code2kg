@@ -69,11 +69,6 @@ class BaseGraphModel(BaseModel, ABC):
                     self._add_and_merge_base_and_nx_node(depends_on_node)
                 self.nx_graph.add_edge(node.id, depends_on_node.id, type=relation_key)
 
-    def get_base_node_from_nx_node(self, nx_node):
-        node_id: str = self.nx_graph.nodes[nx_node].get("id")
-        base_node: BaseGraphNodeModel = self.shallow_nodes[node_id]
-        return base_node
-
     def _add_and_merge_base_and_nx_node(self, node: BaseGraphNodeModel) -> BaseGraphNodeModel:
         if node.id in self.shallow_nodes:
             merged_node: BaseGraphNodeModel = _merge_base_node(self.shallow_nodes[node.id], node)

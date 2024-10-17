@@ -90,8 +90,6 @@ def test_NodeRelatedToListOfDummyClass_relate_to_list_of_dummy_class_obj():
         NodeRelatedToListOfDummyClass(dummy_name="dummy_name", related_to=[DummyClass()])
 
 
-#TODO Add test cases to change graph node properties
-
 def test_merge_node_attributes_no_conflict():
     n1: SimpleNode = SimpleNode(
         name="n1",

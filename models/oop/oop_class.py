@@ -22,7 +22,6 @@ class OOPClass(BaseGraphNodeModel):
     def outgoing_relations(self) -> list[str]:
         return ["super_classes", "within"]
 
-    # TODO construct with flexible parameters
     def __init__(
             self,
             qualified_name: str,

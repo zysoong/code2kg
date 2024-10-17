@@ -24,7 +24,6 @@ class OOPFunction(BaseGraphNodeModel):
     def outgoing_relations(self) -> list[str]:
         return ["flat_function_calls", "within"]
 
-    # TODO construct with flexible parameters
     def __init__(
             self,
             qualified_name: str,
